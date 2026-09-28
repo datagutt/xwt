@@ -61,8 +61,7 @@ impl xwt_core::endpoint::connect::Connecting for Connecting {
         let datagram_read_buffer_size = 65536; // 65k buffers as per spec recommendation
 
         let datagrams = transport.datagrams();
-        let datagram_readable_stream_reader =
-            web_sys_stream_utils::get_reader_byob(datagrams.readable());
+        let datagram_readable_stream_reader = DatagramsReader::for_stream(datagrams.readable());
         let datagram_writable_stream_writer =
             web_sys_stream_utils::get_writer(datagrams.writable());
 
@@ -80,6 +79,34 @@ impl xwt_core::endpoint::connect::Connecting for Connecting {
     }
 }
 
+/// The reader for the datagrams readable stream.
+///
+/// Per the WebTransport spec, the datagrams readable is a regular (non-byte)
+/// [`web_sys::ReadableStream`], which only supports default readers
+/// (this is what Firefox implements); Chrome, however, exposes it as
+/// a byte stream, allowing BYOB reads.
+/// We feature-detect BYOB support and fall back to a default reader.
+#[derive(Debug)]
+pub enum DatagramsReader {
+    /// A BYOB reader, used when the datagrams readable is a byte stream.
+    Byob(web_sys::ReadableStreamByobReader),
+
+    /// A default reader, used when the datagrams readable is not
+    /// a byte stream.
+    Default(web_sys::ReadableStreamDefaultReader),
+}
+
+impl DatagramsReader {
+    /// Acquire a reader for the given datagrams readable stream, preferring
+    /// a BYOB reader when the stream supports it.
+    pub fn for_stream(readable_stream: web_sys::ReadableStream) -> Self {
+        match web_sys_stream_utils::try_get_reader_byob(readable_stream.clone()) {
+            Ok(reader) => Self::Byob(reader),
+            Err(_) => Self::Default(web_sys_stream_utils::get_reader(readable_stream)),
+        }
+    }
+}
+
 /// Session holds the [`web_wt_sys::WebTransport`] and is responsible for
 /// providing access to the Web API of WebTransport in a way that is portable.
 /// It also holds handles to the datagram reader and writer, as well as
@@ -89,7 +116,7 @@ pub struct Session {
     /// The WebTransport instance.
     pub transport: Rc<web_wt_sys::WebTransport>,
     /// The datagram reader.
-    pub datagram_readable_stream_reader: web_sys::ReadableStreamByobReader,
+    pub datagram_readable_stream_reader: DatagramsReader,
     /// The datagram writer.
     pub datagram_writable_stream_writer: web_sys::WritableStreamDefaultWriter,
     /// The desired size of the datagram read buffer.
@@ -450,21 +477,32 @@ impl Session {
     ) -> Result<R, Error> {
         let mut buffer_guard = self.datagram_read_buffer.lock().await;
 
-        let buffer = buffer_guard
-            .take()
-            .unwrap_or_else(|| js_sys::ArrayBuffer::new(self.datagram_read_buffer_size));
-        let view = js_sys::Uint8Array::new(&buffer);
+        match &self.datagram_readable_stream_reader {
+            DatagramsReader::Byob(reader) => {
+                let buffer = buffer_guard
+                    .take()
+                    .unwrap_or_else(|| js_sys::ArrayBuffer::new(self.datagram_read_buffer_size));
+                let view = js_sys::Uint8Array::new(&buffer);
 
-        let maybe_view =
-            web_sys_stream_utils::read_byob(&self.datagram_readable_stream_reader, view).await?;
-        let Some(mut view) = maybe_view else {
-            return Err(wasm_bindgen::JsError::new("unexpected stream termination").into());
-        };
+                let maybe_view = web_sys_stream_utils::read_byob(reader, view).await?;
+                let Some(mut view) = maybe_view else {
+                    return Err(wasm_bindgen::JsError::new("unexpected stream termination").into());
+                };
 
-        let result = f(&mut view);
+                let result = f(&mut view);
 
-        *buffer_guard = Some(view.buffer());
-        Ok(result)
+                *buffer_guard = Some(view.buffer());
+                Ok(result)
+            }
+            DatagramsReader::Default(reader) => {
+                let maybe_view = web_sys_stream_utils::read_uint8array(reader).await?;
+                let Some(mut view) = maybe_view else {
+                    return Err(wasm_bindgen::JsError::new("unexpected stream termination").into());
+                };
+
+                Ok(f(&mut view))
+            }
+        }
     }
 }
 
