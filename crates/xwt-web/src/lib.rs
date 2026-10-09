@@ -42,6 +42,9 @@ impl xwt_core::endpoint::Connect for Endpoint {
     }
 }
 
+/// How many datagrams may wait for the browser to send them before a write waits.
+const OUTGOING_HIGH_WATER_MARK: f64 = 64.0;
+
 /// Connecting represents the transient connection state when
 /// the [`web_wt_sys::WebTransport`] has been created but is not ready yet.
 #[derive(Debug)]
@@ -225,6 +228,7 @@ impl Datagrams {
     ) -> Self {
         let read_buffer_size = 65536; // 65k buffers as per spec recommendation
 
+        raise_outgoing_high_water_mark(datagrams);
         let readable_stream_reader = DatagramsReader::for_stream(datagrams.readable());
         // Feature-detect `createWritable`; fall back to the legacy `writable`
         // attribute on browsers that do not implement it yet.
@@ -256,6 +260,25 @@ impl Drop for Datagrams {
             self.readable_stream_reader.release_lock();
             self.writable_stream_writer.release_lock();
         }
+    }
+}
+
+/// Chrome starts the outgoing high water mark at one datagram, so each write waits until the
+/// network service has taken the one before it. On a page with no idle time between frames that
+/// happens once per frame, and a sender that writes more than one datagram per frame builds a
+/// queue that only grows. Raising the mark lets writes resolve at once; Chrome still drops
+/// datagrams that wait too long.
+///
+/// `outgoingHighWaterMark` is no longer in the spec, so `web-wt-sys` has no binding for it, but
+/// Chrome still implements it. Set it only where the browser has it.
+fn raise_outgoing_high_water_mark(datagrams: &web_wt_sys::WebTransportDatagramDuplexStream) {
+    let key = JsValue::from_str("outgoingHighWaterMark");
+    if js_sys::Reflect::has(datagrams, &key).unwrap_or_default() {
+        let _ = js_sys::Reflect::set(
+            datagrams,
+            &key,
+            &JsValue::from_f64(OUTGOING_HIGH_WATER_MARK),
+        );
     }
 }
 
