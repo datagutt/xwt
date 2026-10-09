@@ -42,6 +42,9 @@ impl xwt_core::endpoint::Connect for Endpoint {
     }
 }
 
+/// How many datagrams may wait for the browser to send them before a write waits.
+const OUTGOING_HIGH_WATER_MARK: f64 = 64.0;
+
 /// Connecting represents the transient connection state when
 /// the [`web_wt_sys::WebTransport`] has been created but is not ready yet.
 #[derive(Debug)]
@@ -61,6 +64,11 @@ impl xwt_core::endpoint::connect::Connecting for Connecting {
         let datagram_read_buffer_size = 65536; // 65k buffers as per spec recommendation
 
         let datagrams = transport.datagrams();
+        // Chrome starts the outgoing high water mark at one datagram, so each write waits
+        // until the network service has taken the one before it. On a page with no idle time
+        // between frames that happens once per frame, and a sender that writes more than one
+        // datagram per frame builds a queue that only grows.
+        datagrams.set_outgoing_high_water_mark(OUTGOING_HIGH_WATER_MARK);
         let datagram_readable_stream_reader = DatagramsReader::for_stream(datagrams.readable());
         let datagram_writable_stream_writer =
             web_sys_stream_utils::get_writer(datagrams.writable());
