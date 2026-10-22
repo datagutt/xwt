@@ -1878,8 +1878,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "web-sys-async-io"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b66291e1a2cb47dadf8673803d562e3f418cc2af6472377a44530c0a8b106203"
+dependencies = [
+ "js-sys",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "web-sys-stream-utils"
 version = "0.2.6"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "web-sys-stream-utils"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90af4c6d9515017d34626c0a1e5570cf44ca5f99dde4b88a406c033d8d9bba94"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -1907,6 +1932,19 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "web-sys",
+]
+
+[[package]]
+name = "web-wt-sys"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77437b8eabcceada3fd9b7443625e5072517b7cb6ae843f70bda4e4cd5db7dbf"
+dependencies = [
+ "js-sys",
+ "pastey",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -2100,7 +2138,7 @@ version = "0.18.1"
 name = "xwt-anchor"
 version = "0.9.0"
 dependencies = [
- "xwt-core",
+ "xwt-core 0.10.0",
 ]
 
 [[package]]
@@ -2133,11 +2171,17 @@ name = "xwt-core"
 version = "0.10.0"
 
 [[package]]
+name = "xwt-core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd464c7ca8f51b8aba9a92aa74c2d0531ba281d855672cb1088dc975712011a5"
+
+[[package]]
 name = "xwt-dyn"
 version = "0.4.0"
 dependencies = [
  "dyn_safe",
- "xwt-core",
+ "xwt-core 0.10.0",
 ]
 
 [[package]]
@@ -2147,7 +2191,7 @@ dependencies = [
  "static_assertions",
  "tracing",
  "wtransport",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-dyn",
  "xwt-web",
  "xwt-wtransport",
@@ -2206,7 +2250,7 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "xwt-cert-fingerprint",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-erased",
  "xwt-erased-example-client-shared",
  "xwt-test-assets",
@@ -2247,7 +2291,7 @@ dependencies = [
 name = "xwt-error"
 version = "0.10.0"
 dependencies = [
- "xwt-core",
+ "xwt-core 0.10.0",
 ]
 
 [[package]]
@@ -2270,7 +2314,7 @@ dependencies = [
  "tokio",
  "wtransport",
  "xwt-cert-fingerprint",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-example-client-shared",
  "xwt-test-assets",
  "xwt-wtransport",
@@ -2284,7 +2328,7 @@ dependencies = [
  "futures-util",
  "getrandom 0.4.3",
  "rand",
- "xwt-core",
+ "xwt-core 0.10.0",
 ]
 
 [[package]]
@@ -2296,7 +2340,7 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "xwt-cert-fingerprint",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-example-client-shared",
  "xwt-test-assets",
  "xwt-web",
@@ -2317,7 +2361,7 @@ version = "0.1.0"
 dependencies = [
  "tokio",
  "wtransport",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-example-server-shared",
  "xwt-test-assets",
  "xwt-wtransport",
@@ -2329,7 +2373,7 @@ version = "0.1.0"
 dependencies = [
  "futures-util",
  "tokio",
- "xwt-core",
+ "xwt-core 0.10.0",
 ]
 
 [[package]]
@@ -2373,7 +2417,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-error",
 ]
 
@@ -2390,11 +2434,11 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
- "web-sys-async-io",
- "web-sys-stream-utils",
- "web-wt-sys",
+ "web-sys-async-io 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys-stream-utils 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-wt-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "xwt-cert-fingerprint",
- "xwt-core",
+ "xwt-core 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "xwt-test-assets",
  "xwt-tests",
 ]
@@ -2411,7 +2455,7 @@ dependencies = [
  "tracing-subscriber",
  "wtransport",
  "xwt-cert-fingerprint",
- "xwt-core",
+ "xwt-core 0.10.0",
  "xwt-test-assets",
  "xwt-tests",
 ]

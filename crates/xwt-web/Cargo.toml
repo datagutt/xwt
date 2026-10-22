@@ -13,11 +13,13 @@ repository = "https://github.com/MOZGIII/xwt"
 [package.metadata.docs.rs]
 default-target = "wasm32-unknown-unknown"
 
+# The published crates rather than the siblings in this workspace, so a project that patches in
+# this branch shares xwt-core and friends with the other crates that depend on them.
 [target.'cfg(target_family = "wasm")'.dependencies]
-web-sys-async-io = { version = "0.6", path = "../web-sys-async-io" }
-web-sys-stream-utils = { version = "0.2.6", path = "../web-sys-stream-utils" }
-web-wt-sys = { version = "0.3.1", path = "../web-wt-sys", default-features = false }
-xwt-core = { version = "0.10", path = "../xwt-core", default-features = false }
+web-sys-async-io = { version = "0.6" }
+web-sys-stream-utils = { version = "0.2.6" }
+web-wt-sys = { version = "0.3.1", default-features = false }
+xwt-core = { version = "0.10", default-features = false }
 
 js-sys = "0.3.104"
 thiserror = "2"
