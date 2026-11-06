@@ -97,6 +97,14 @@ pub struct Session {
     /// The datagrams state for this session.
     pub datagrams: Datagrams,
 
+    /// The reader of incoming unidirectional streams. A readable stream takes
+    /// one reader at a time, so the session takes it on the first accept and
+    /// keeps it for every accept after.
+    incoming_uni: std::cell::OnceCell<web_sys::ReadableStreamDefaultReader>,
+
+    /// The reader of incoming bidirectional streams, kept as the one above.
+    incoming_bi: std::cell::OnceCell<web_sys::ReadableStreamDefaultReader>,
+
     /// Whether to close the session on drop.
     pub close_on_drop: bool,
 }
@@ -108,6 +116,8 @@ impl Session {
         Self {
             transport: Some(Rc::new(transport)),
             datagrams,
+            incoming_uni: std::cell::OnceCell::new(),
+            incoming_bi: std::cell::OnceCell::new(),
             close_on_drop: true,
         }
     }
@@ -153,6 +163,12 @@ impl Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+        for reader in [self.incoming_uni.get(), self.incoming_bi.get()]
+            .into_iter()
+            .flatten()
+        {
+            reader.release_lock();
+        }
         if self.close_on_drop {
             self.transport_ref().close();
         }
@@ -412,9 +428,11 @@ impl xwt_core::session::stream::AcceptBi for Session {
 
     async fn accept_bi(&self) -> Result<(Self::SendStream, Self::RecvStream), Self::Error> {
         let transport = self.transport_ref();
-        let incoming: web_sys::ReadableStream = transport.incoming_bidirectional_streams();
-        let reader: JsValue = incoming.get_reader().into();
-        let reader: web_sys::ReadableStreamDefaultReader = reader.into();
+        let reader = self.incoming_bi.get_or_init(|| {
+            let incoming: web_sys::ReadableStream = transport.incoming_bidirectional_streams();
+            let reader: JsValue = incoming.get_reader().into();
+            reader.into()
+        });
         let read_result = wasm_bindgen_futures::JsFuture::from(reader.read()).await?;
         let read_result: web_wt_sys::ReadableStreamReadResult<
             web_wt_sys::WebTransportBidirectionalStream,
@@ -450,9 +468,11 @@ impl xwt_core::session::stream::AcceptUni for Session {
 
     async fn accept_uni(&self) -> Result<Self::RecvStream, Self::Error> {
         let transport = self.transport_ref();
-        let incoming: web_sys::ReadableStream = transport.incoming_unidirectional_streams();
-        let reader: JsValue = incoming.get_reader().into();
-        let reader: web_sys::ReadableStreamDefaultReader = reader.into();
+        let reader = self.incoming_uni.get_or_init(|| {
+            let incoming: web_sys::ReadableStream = transport.incoming_unidirectional_streams();
+            let reader: JsValue = incoming.get_reader().into();
+            reader.into()
+        });
         let read_result = wasm_bindgen_futures::JsFuture::from(reader.read()).await?;
         let read_result: web_wt_sys::ReadableStreamReadResult<
             web_wt_sys::WebTransportReceiveStream,
